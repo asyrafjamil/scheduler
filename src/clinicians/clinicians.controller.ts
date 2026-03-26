@@ -1,22 +1,12 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CliniciansService } from './clinicians.service';
 import { GetAppointmentsQueryDto } from './dto/get-appointments-query.dto';
 
 @ApiTags('clinicians')
 @Controller('clinicians')
 export class CliniciansController {
-  constructor(private readonly cliniciansService: CliniciansService) { }
+  constructor(private readonly cliniciansService: CliniciansService) {}
 
   @Get(':id/appointments')
   @ApiOperation({

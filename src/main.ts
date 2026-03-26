@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Enable CORS for Swagger UI and API access
   app.enableCors({
     origin: true, // Allow all origins in development

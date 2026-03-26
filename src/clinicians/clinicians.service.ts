@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { validateDatesNotPast } from '../common/utils/date-validator.util';
 
 @Injectable()
 export class CliniciansService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async getUpcomingAppointments(id: string, from?: string, to?: string) {
     const clinician = await this.prisma.clinician.findUnique({
@@ -44,7 +44,9 @@ export class CliniciansService {
     // This works around a Prisma + SQLite date comparison issue
     if (to) {
       const toTime = new Date(to);
-      appointments = appointments.filter(apt => new Date(apt.start) <= toTime);
+      appointments = appointments.filter(
+        (apt) => new Date(apt.start) <= toTime,
+      );
     }
 
     return appointments;

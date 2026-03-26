@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
     const { start, end, clinicianId, patientId, patientName, patientEmail } =
@@ -27,7 +27,8 @@ export class AppointmentsService {
     // Validate start and end time are not in the past
     if (startDate < now || endDate < now) {
       throw new BadRequestException(
-        'Appointment times cannot be in the past. Please provide future dates.',);
+        'Appointment times cannot be in the past. Please provide future dates.',
+      );
     }
 
     // Validate start < end

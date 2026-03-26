@@ -9,7 +9,7 @@ import { ROLES_KEY, Role } from './roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
@@ -25,8 +25,7 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     // Extract role from x-role header OR role query parameter
-    const role: string =
-      request.headers['x-role'] || request.query.role || '';
+    const role: string = request.headers['x-role'] || request.query.role || '';
 
     if (!role) {
       throw new ForbiddenException(

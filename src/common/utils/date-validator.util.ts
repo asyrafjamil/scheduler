@@ -10,7 +10,7 @@ export function validateDatesNotPast(
 ): void {
   const now = new Date();
 
-  for (const [fieldName, date] of Object.entries(dates)) {
+  for (const [, date] of Object.entries(dates)) {
     if (!date) continue; // Skip undefined/null dates
 
     const dateObj = typeof date === 'string' ? new Date(date) : date;

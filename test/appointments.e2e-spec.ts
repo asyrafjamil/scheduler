@@ -153,7 +153,9 @@ describe('Appointments (e2e)', () => {
         })
         .expect(409);
 
-      expect(response.body.message).toMatch(/(not available|already has an appointment|already have an appointment with)/);
+      expect(response.body.message).toMatch(
+        /(not available|already has an appointment|already have an appointment with)/,
+      );
     });
 
     it('should reject overlapping appointment (starts during existing)', async () => {
@@ -179,7 +181,9 @@ describe('Appointments (e2e)', () => {
         })
         .expect(409);
 
-      expect(response.body.message).toMatch(/(not available|already has an appointment|already have an appointment with)/);
+      expect(response.body.message).toMatch(
+        /(not available|already has an appointment|already have an appointment with)/,
+      );
     });
 
     it('should reject overlapping appointment (ends during existing)', async () => {
@@ -205,7 +209,9 @@ describe('Appointments (e2e)', () => {
         })
         .expect(409);
 
-      expect(response.body.message).toMatch(/(not available|already has an appointment|already have an appointment with)/);
+      expect(response.body.message).toMatch(
+        /(not available|already has an appointment|already have an appointment with)/,
+      );
     });
 
     it('should reject overlapping appointment (contains existing)', async () => {
@@ -231,7 +237,9 @@ describe('Appointments (e2e)', () => {
         })
         .expect(409);
 
-      expect(response.body.message).toMatch(/(not available|already has an appointment|already have an appointment with)/);
+      expect(response.body.message).toMatch(
+        /(not available|already has an appointment|already have an appointment with)/,
+      );
     });
 
     it('should allow back-to-back appointments (no overlap)', async () => {
@@ -346,7 +354,9 @@ describe('Appointments (e2e)', () => {
         })
         .expect(409);
 
-      expect(response.body.message).toContain('already have an appointment with');
+      expect(response.body.message).toContain(
+        'already have an appointment with',
+      );
     });
 
     it('should reject patient double-booking (overlapping times)', async () => {
@@ -381,7 +391,9 @@ describe('Appointments (e2e)', () => {
         })
         .expect(409);
 
-      expect(response.body.message).toContain('already have an appointment with');
+      expect(response.body.message).toContain(
+        'already have an appointment with',
+      );
     });
   });
 
@@ -480,8 +492,8 @@ describe('Appointments (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get(`/clinicians/${clinicianId}/appointments`)
         .query({
-          from: '2025-01-01T00:00:00Z',
-          to: '2025-01-02T00:00:00Z',
+          from: '2026-12-01T00:00:00Z',
+          to: '2026-12-02T00:00:00Z',
         })
         .expect(200);
 
@@ -546,7 +558,7 @@ describe('Appointments (e2e)', () => {
     });
 
     it('should handle concurrent overlapping appointments (different times)', async () => {
-      const baseTime = '2026-05-02T10:00:00Z';
+      // const baseTime = '2026-05-02T10:00:00Z';
 
       // Multiple overlapping time slots
       const requests = [
@@ -567,7 +579,7 @@ describe('Appointments (e2e)', () => {
       // (This is a known SQLite limitation - use PostgreSQL for production)
       const successful = responses.filter((r) => r.status === 201);
       const conflicts = responses.filter((r) => r.status === 409);
-      
+
       expect(successful.length).toBeGreaterThanOrEqual(1);
       expect(successful.length + conflicts.length).toBe(4);
 
