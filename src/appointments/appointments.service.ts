@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { validateDatesNotPast } from '../common/utils/date-validator.util';
 
 @Injectable()
 export class AppointmentsService {
@@ -158,12 +159,39 @@ export class AppointmentsService {
     );
   }
 
-  async findAll() {
-    return this.prisma.appointment.findMany({
+  async findAll(from?: string, to?: string) {
+    // Validate dates if provided
+    if (from || to) {
+      validateDatesNotPast({ from, to });
+    }
+
+    const whereClause: any = {};
+
+    if (from) {
+      const fromDate = new Date(from);
+      whereClause.start = { gte: fromDate };
+    }
+
+    // Use memory filter for 'to' due to Prisma + SQLite issue
+    let appointments = await this.prisma.appointment.findMany({
+      where: whereClause,
       include: {
         clinician: true,
         patient: true,
       },
+      orderBy: {
+        start: 'asc',
+      },
     });
+
+    // Filter 'to' in memory if provided
+    if (to) {
+      const toDate = new Date(to);
+      appointments = appointments.filter(
+        (apt) => new Date(apt.start) <= toDate,
+      );
+    }
+
+    return appointments;
   }
 }

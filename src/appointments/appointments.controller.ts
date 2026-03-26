@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,6 +14,7 @@ import {
   ApiResponse,
   ApiSecurity,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -54,10 +56,24 @@ export class AppointmentsController {
   @ApiOperation({
     summary: 'List all appointments',
     description:
-      'Returns all appointments. Requires admin role.\n\n' +
+      'Returns all appointments with optional date range filtering. Requires admin role.\n\n' +
       '**Authentication:** Click "Authorize" button and enter "admin" in the x-role field.',
   })
   @ApiSecurity('x-role')
+  @ApiQuery({
+    name: 'from',
+    required: false,
+    type: String,
+    description: 'Filter appointments starting from this date (ISO 8601)',
+    example: '2026-04-01T00:00:00Z',
+  })
+  @ApiQuery({
+    name: 'to',
+    required: false,
+    type: String,
+    description: 'Filter appointments up to this date (ISO 8601)',
+    example: '2026-04-30T23:59:59Z',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of all appointments',
@@ -66,7 +82,10 @@ export class AppointmentsController {
     status: 403,
     description: 'Forbidden - Admin role required',
   })
-  findAll() {
-    return this.appointmentsService.findAll();
+  findAll(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.appointmentsService.findAll(from, to);
   }
 }

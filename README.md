@@ -44,27 +44,39 @@ npm run start:dev
 
 ## 📋 Core Endpoints
 
-### Create Appointment
+| Method | Endpoint | Description | Auth | Query Params |
+|--------|----------|-------------|------|--------------|
+| **POST** | `/appointments` | Create new appointment | `patient` | N/A |
+| **GET** | `/appointments` | List all appointments (admin) | `admin` | `from`, `to` |
+| **GET** | `/clinicians/:id/appointments` | List clinician appointments | `clinician` | `from`, `to` |
+
+
+### Example Requests
+
+**Create Appointment:**
 ```bash
-POST /appointments
-{
-  "start": "2026-04-15T10:00:00Z",
-  "end": "2026-04-15T11:00:00Z",
-  "clinicianId": "uuid",
-  "patientId": "uuid"
-}
+curl -X POST http://localhost:3000/appointments \
+  -H "Content-Type: application/json" \
+  -H "x-role: patient" \
+  -d '{
+    "start": "2026-04-15T10:00:00Z",
+    "end": "2026-04-15T11:00:00Z",
+    "clinicianId": "uuid",
+    "patientId": "uuid"
+  }'
 # Returns: 201 Created | 409 Conflict | 400 Bad Request
 ```
 
-### Get Upcoming Appointments
+**Get Clinician Appointments:**
 ```bash
-GET /clinicians/:id/appointments?from=2026-04-01T00:00:00Z&to=2026-04-30T23:59:59Z
+curl "http://localhost:3000/clinicians/:id/appointments?from=2026-04-01T00:00:00Z" \
+  -H "x-role: clinician"
 ```
 
-### List All (Admin)
+**List All (Admin):**
 ```bash
-GET /appointments
-x-role: admin
+curl http://localhost:3000/appointments \
+  -H "x-role: admin"
 ```
 
 ## 🧪 Testing
@@ -189,4 +201,4 @@ npm run prisma:studio  # Database UI
 ```
 
 
-**Built with ❤️**
+**Engineered by Asyraf**

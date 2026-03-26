@@ -518,122 +518,125 @@ describe('Appointments (e2e)', () => {
   // Concurrent tests: Work locally but skip in CI due to SQLite + slow I/O timeouts
   // Assessment Note: Concurrency safety is implemented via Prisma transactions (see service code)
   // These tests prove the logic works, but SQLite's single-writer architecture + CI slowness = flaky
-  (process.env.CI ? describe.skip : describe)('Concurrent appointment creation (race condition tests)', () => {
-    beforeEach(async () => {
-      await prisma.appointment.deleteMany();
-    });
+  (process.env.CI ? describe.skip : describe)(
+    'Concurrent appointment creation (race condition tests)',
+    () => {
+      beforeEach(async () => {
+        await prisma.appointment.deleteMany();
+      });
 
-    it('should handle concurrent appointment requests safely', async () => {
-      // Attempt to create 5 overlapping appointments simultaneously
-      const appointmentData = {
-        start: '2026-05-01T14:00:00Z',
-        end: '2026-05-01T15:00:00Z',
-        clinicianId,
-        patientId,
-      };
+      it('should handle concurrent appointment requests safely', async () => {
+        // Attempt to create 5 overlapping appointments simultaneously
+        const appointmentData = {
+          start: '2026-05-01T14:00:00Z',
+          end: '2026-05-01T15:00:00Z',
+          clinicianId,
+          patientId,
+        };
 
-      const requests = Array(5)
-        .fill(null)
-        .map(() =>
+        const requests = Array(5)
+          .fill(null)
+          .map(() =>
+            request(app.getHttpServer())
+              .post('/appointments')
+              .send(appointmentData),
+          );
+
+        const responses = await Promise.all(requests);
+
+        // Count successful vs failed requests
+        const successful = responses.filter((r) => r.status === 201);
+        const conflicts = responses.filter((r) => r.status === 409);
+
+        // Exactly one should succeed, the rest should get 409 Conflict
+        expect(successful.length).toBe(1);
+        expect(conflicts.length).toBe(4);
+
+        // Verify only one appointment was created
+        const appointments = await prisma.appointment.findMany({
+          where: {
+            clinicianId,
+            start: new Date('2026-05-01T14:00:00Z'),
+          },
+        });
+        expect(appointments.length).toBe(1);
+      }, 15000); // 15s timeout for concurrent test
+
+      it('should handle concurrent overlapping appointments (different times)', async () => {
+        // const baseTime = '2026-05-02T10:00:00Z';
+
+        // Multiple overlapping time slots
+        const requests = [
+          { start: '2026-05-02T10:00:00Z', end: '2026-05-02T11:00:00Z' }, // Base
+          { start: '2026-05-02T10:30:00Z', end: '2026-05-02T11:30:00Z' }, // Overlaps end
+          { start: '2026-05-02T09:30:00Z', end: '2026-05-02T10:30:00Z' }, // Overlaps start
+          { start: '2026-05-02T10:15:00Z', end: '2026-05-02T10:45:00Z' }, // Inside
+        ].map((data) =>
           request(app.getHttpServer())
             .post('/appointments')
-            .send(appointmentData),
+            .send({ ...data, clinicianId, patientId }),
         );
 
-      const responses = await Promise.all(requests);
+        const responses = await Promise.all(requests);
 
-      // Count successful vs failed requests
-      const successful = responses.filter((r) => r.status === 201);
-      const conflicts = responses.filter((r) => r.status === 409);
+        // With SQLite's limited isolation, we expect at least one to succeed
+        // but due to timing, possibly more than one could succeed
+        // (This is a known SQLite limitation - use PostgreSQL for production)
+        const successful = responses.filter((r) => r.status === 201);
+        const conflicts = responses.filter((r) => r.status === 409);
 
-      // Exactly one should succeed, the rest should get 409 Conflict
-      expect(successful.length).toBe(1);
-      expect(conflicts.length).toBe(4);
+        expect(successful.length).toBeGreaterThanOrEqual(1);
+        expect(successful.length + conflicts.length).toBe(4);
 
-      // Verify only one appointment was created
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          clinicianId,
-          start: new Date('2026-05-01T14:00:00Z'),
-        },
-      });
-      expect(appointments.length).toBe(1);
-    }, 15000); // 15s timeout for concurrent test
+        // Verify appointments don't actually overlap in the database
+        const appointments = await prisma.appointment.findMany({
+          where: {
+            clinicianId,
+            start: { gte: new Date('2026-05-02T09:00:00Z') },
+            end: { lte: new Date('2026-05-02T12:00:00Z') },
+          },
+          orderBy: { start: 'asc' },
+        });
 
-    it('should handle concurrent overlapping appointments (different times)', async () => {
-      // const baseTime = '2026-05-02T10:00:00Z';
+        // Check that no two appointments actually overlap
+        for (let i = 1; i < appointments.length; i++) {
+          const prev = appointments[i - 1];
+          const curr = appointments[i];
+          expect(new Date(curr.start).getTime()).toBeGreaterThanOrEqual(
+            new Date(prev.end).getTime(),
+          );
+        }
+      }, 15000); // 15s timeout for concurrent test
 
-      // Multiple overlapping time slots
-      const requests = [
-        { start: '2026-05-02T10:00:00Z', end: '2026-05-02T11:00:00Z' }, // Base
-        { start: '2026-05-02T10:30:00Z', end: '2026-05-02T11:30:00Z' }, // Overlaps end
-        { start: '2026-05-02T09:30:00Z', end: '2026-05-02T10:30:00Z' }, // Overlaps start
-        { start: '2026-05-02T10:15:00Z', end: '2026-05-02T10:45:00Z' }, // Inside
-      ].map((data) =>
-        request(app.getHttpServer())
-          .post('/appointments')
-          .send({ ...data, clinicianId, patientId }),
-      );
-
-      const responses = await Promise.all(requests);
-
-      // With SQLite's limited isolation, we expect at least one to succeed
-      // but due to timing, possibly more than one could succeed
-      // (This is a known SQLite limitation - use PostgreSQL for production)
-      const successful = responses.filter((r) => r.status === 201);
-      const conflicts = responses.filter((r) => r.status === 409);
-
-      expect(successful.length).toBeGreaterThanOrEqual(1);
-      expect(successful.length + conflicts.length).toBe(4);
-
-      // Verify appointments don't actually overlap in the database
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          clinicianId,
-          start: { gte: new Date('2026-05-02T09:00:00Z') },
-          end: { lte: new Date('2026-05-02T12:00:00Z') },
-        },
-        orderBy: { start: 'asc' },
-      });
-
-      // Check that no two appointments actually overlap
-      for (let i = 1; i < appointments.length; i++) {
-        const prev = appointments[i - 1];
-        const curr = appointments[i];
-        expect(new Date(curr.start).getTime()).toBeGreaterThanOrEqual(
-          new Date(prev.end).getTime(),
+      it('should allow concurrent non-overlapping appointments', async () => {
+        // Create appointments at completely different times
+        const requests = [
+          { start: '2026-05-03T09:00:00Z', end: '2026-05-03T10:00:00Z' },
+          { start: '2026-05-03T10:00:00Z', end: '2026-05-03T11:00:00Z' },
+          { start: '2026-05-03T11:00:00Z', end: '2026-05-03T12:00:00Z' },
+          { start: '2026-05-03T13:00:00Z', end: '2026-05-03T14:00:00Z' },
+        ].map((data) =>
+          request(app.getHttpServer())
+            .post('/appointments')
+            .send({ ...data, clinicianId, patientId }),
         );
-      }
-    }, 15000); // 15s timeout for concurrent test
 
-    it('should allow concurrent non-overlapping appointments', async () => {
-      // Create appointments at completely different times
-      const requests = [
-        { start: '2026-05-03T09:00:00Z', end: '2026-05-03T10:00:00Z' },
-        { start: '2026-05-03T10:00:00Z', end: '2026-05-03T11:00:00Z' },
-        { start: '2026-05-03T11:00:00Z', end: '2026-05-03T12:00:00Z' },
-        { start: '2026-05-03T13:00:00Z', end: '2026-05-03T14:00:00Z' },
-      ].map((data) =>
-        request(app.getHttpServer())
-          .post('/appointments')
-          .send({ ...data, clinicianId, patientId }),
-      );
+        const responses = await Promise.all(requests);
 
-      const responses = await Promise.all(requests);
+        // All should succeed since they don't overlap
+        const successful = responses.filter((r) => r.status === 201);
+        expect(successful.length).toBe(4);
 
-      // All should succeed since they don't overlap
-      const successful = responses.filter((r) => r.status === 201);
-      expect(successful.length).toBe(4);
-
-      // Verify all 4 appointments exist
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          clinicianId,
-          start: { gte: new Date('2026-05-03T00:00:00Z') },
-          end: { lte: new Date('2026-05-03T23:59:59Z') },
-        },
-      });
-      expect(appointments.length).toBe(4);
-    }, 15000); // 15s timeout for concurrent test
-  });
+        // Verify all 4 appointments exist
+        const appointments = await prisma.appointment.findMany({
+          where: {
+            clinicianId,
+            start: { gte: new Date('2026-05-03T00:00:00Z') },
+            end: { lte: new Date('2026-05-03T23:59:59Z') },
+          },
+        });
+        expect(appointments.length).toBe(4);
+      }, 15000); // 15s timeout for concurrent test
+    },
+  );
 });
