@@ -44,12 +44,12 @@ npm run start:dev
 
 ### 🎯 Bonus: Patient Overlap Validation
 
-Beyond the assessment requirement of preventing **clinician** double-booking, this implementation also prevents **patient** double-booking:
+Beyond the assessment requirement of preventing **clinicians from being double-booked**, this implementation also prevents **patients from being double-booked**:
 
-- ✅ **Clinician overlap** - A clinician can't have two appointments at the same time
-- ✅ **Patient overlap** - A patient can't book multiple appointments at the same time *(bonus - not required but good product logic)*
+- ✅ **Clinician overlap** - A clinician can't have two appointments at the same time (required)
+- ✅ **Patient overlap** - A patient can't book multiple appointments at the same time *(bonus feature - not required)*
 
-Example: If Patient John books with Dr. Smith at 10am, he cannot book another appointment with Dr. Jones at 10am. This reflects real-world clinic logic where patients can't attend multiple appointments simultaneously.
+**Example:** If Patient John books with Dr. Smith at 10am, he cannot book another appointment with Dr. Jones at 10am. This reflects real-world clinic logic where patients can't attend multiple appointments simultaneously.
 
 ## 📋 Core Endpoints
 
