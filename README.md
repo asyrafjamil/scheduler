@@ -35,20 +35,31 @@ npm run start:dev
 
 | Feature | Description |
 |---------|-------------|
-| 🚫 **Overlap Detection** | Prevents double-booking with transaction-based checks |
+| 🚫 **Overlap Detection** | Prevents double-booking for both clinicians AND patients |
 | 📅 **Date Validation** | Rejects past dates using reusable validators |
 | 🔒 **Concurrency Safe** | Handles race conditions in simultaneous bookings |
 | 👤 **Auto-create Patients** | Optional patient creation when booking appointments |
-| 🔐 **Role-based Auth** | Simple `x-role` header authentication |
+| 🔐 **Role-based Auth** | Simple `x-role` header authentication for admin |
 | 📖 **OpenAPI/Swagger** | Interactive API documentation |
+
+### 🎯 Bonus: Patient Overlap Validation
+
+Beyond the assessment requirement of preventing **clinician** double-booking, this implementation also prevents **patient** double-booking:
+
+- ✅ **Clinician overlap** - A clinician can't have two appointments at the same time
+- ✅ **Patient overlap** - A patient can't book multiple appointments at the same time *(bonus - not required but good product logic)*
+
+Example: If Patient John books with Dr. Smith at 10am, he cannot book another appointment with Dr. Jones at 10am. This reflects real-world clinic logic where patients can't attend multiple appointments simultaneously.
 
 ## 📋 Core Endpoints
 
-| Method | Endpoint | Description | Auth | Query Params |
-|--------|----------|-------------|------|--------------|
-| **POST** | `/appointments` | Create new appointment | `patient` | N/A |
-| **GET** | `/appointments` | List all appointments (admin) | `admin` | `from`, `to` |
-| **GET** | `/clinicians/:id/appointments` | List clinician appointments | `clinician` | `from`, `to` |
+| Method | Endpoint | Description | Auth Required | Query Params |
+|--------|----------|-------------|---------------|--------------|
+| **POST** | `/appointments` | Create new appointment | No | - |
+| **GET** | `/appointments` | List all appointments | **Yes** (`admin`) | `from`, `to` |
+| **GET** | `/clinicians/:id/appointments` | List clinician appointments | No | `from`, `to` |
+
+> **Note:** Only the admin list endpoint enforces authentication via `x-role: admin` header. Other endpoints are open for this assessment demo.
 
 
 ### Example Requests
@@ -57,7 +68,6 @@ npm run start:dev
 ```bash
 curl -X POST http://localhost:3000/appointments \
   -H "Content-Type: application/json" \
-  -H "x-role: patient" \
   -d '{
     "start": "2026-04-15T10:00:00Z",
     "end": "2026-04-15T11:00:00Z",
@@ -69,11 +79,10 @@ curl -X POST http://localhost:3000/appointments \
 
 **Get Clinician Appointments:**
 ```bash
-curl "http://localhost:3000/clinicians/:id/appointments?from=2026-04-01T00:00:00Z" \
-  -H "x-role: clinician"
+curl "http://localhost:3000/clinicians/:id/appointments?from=2026-04-01T00:00:00Z"
 ```
 
-**List All (Admin):**
+**List All (Admin - Auth Required):**
 ```bash
 curl http://localhost:3000/appointments \
   -H "x-role: admin"
@@ -120,6 +129,8 @@ npm run prisma:seed    # Reset with test data
 
 ## 🚀 Future Improvements
 
+> **Note:** Patient overlap validation (preventing double-booking across clinicians) is already implemented as a bonus feature beyond requirements.
+
 ### Short-term (Easy wins)
 - **Pagination** - Add `?page=1&limit=10` to appointment listings
 - **Sorting** - Allow sorting by date, clinician name, etc
@@ -159,37 +170,6 @@ npm run prisma:seed    # Reset with test data
 4. **No Soft Deletes** - Appointments are hard-deleted; consider soft delete for audit trail
 5. **Basic Validation** - No working hours, holiday, or duration limits yet
 
-### 🔧 Why These Choices?
-
-| Choice | Reason |
-|--------|--------|
-| **NestJS** | Structured, scalable, built-in DI and validation |
-| **Prisma** | Type-safe ORM with migrations and great DX |
-| **SQLite** | Zero-config for demo; easy to ship with Docker |
-| **Swagger** | Auto-generated docs from decorators |
-| **E2E Tests** | Test real HTTP flows, not mocked units |
-| **Transactions** | Prevents race conditions in concurrent bookings |
-
-### 📝 Overlap Logic Explained
-
-**Definition:** Overlaps include any intersection EXCEPT touching at endpoints.
-
-```typescript
-// ✅ ALLOWED (touching at endpoints)
-Appointment A: 10:00 - 11:00
-Appointment B: 11:00 - 12:00  // start == previous end
-
-// ❌ REJECTED (actual overlap)
-Appointment A: 10:00 - 11:00
-Appointment B: 10:30 - 11:30  // overlaps by 30 min
-```
-
-**Implementation:**
-```typescript
-// Overlap if: start < other.end && end > other.start
-// This correctly excludes touching endpoints
-```
-
 ## 🛠️ Commands
 
 ```bash
@@ -199,6 +179,5 @@ npm run start:prod     # Production mode
 npm run lint           # Lint code
 npm run prisma:studio  # Database UI
 ```
-
 
 **Engineered by Asyraf**
