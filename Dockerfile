@@ -7,8 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with legacy peer deps
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -27,8 +27,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production
+# Install production dependencies only with legacy peer deps
+RUN npm ci --only=production --legacy-peer-deps
 
 # Copy Prisma schema for runtime
 COPY --from=builder /app/prisma ./prisma
@@ -51,4 +51,4 @@ ENV DATABASE_URL="file:/app/data/dev.db"
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
