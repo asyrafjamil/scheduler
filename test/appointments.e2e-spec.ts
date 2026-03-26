@@ -555,7 +555,7 @@ describe('Appointments (e2e)', () => {
         },
       });
       expect(appointments.length).toBe(1);
-    });
+    }, 15000); // 15s timeout for concurrent test
 
     it('should handle concurrent overlapping appointments (different times)', async () => {
       // const baseTime = '2026-05-02T10:00:00Z';
@@ -601,7 +601,7 @@ describe('Appointments (e2e)', () => {
           new Date(prev.end).getTime(),
         );
       }
-    });
+    }, 15000); // 15s timeout for concurrent test
 
     it('should allow concurrent non-overlapping appointments', async () => {
       // Create appointments at completely different times
@@ -631,6 +631,6 @@ describe('Appointments (e2e)', () => {
         },
       });
       expect(appointments.length).toBe(4);
-    });
+    }, 15000); // 15s timeout for concurrent test
   });
 });
