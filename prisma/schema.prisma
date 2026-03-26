@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Clinician {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  specialty    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model Patient {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model Appointment {
+  id          String    @id @default(uuid())
+  start       DateTime
+  end         DateTime
+  clinicianId String
+  patientId   String
+  clinician   Clinician @relation(fields: [clinicianId], references: [id])
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Indexes for faster overlap queries and concurrency control
+  @@index([clinicianId, start, end])
+  @@index([patientId, start, end])
+}

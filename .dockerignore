@@ -1,0 +1,18 @@
+# Docker ignore file to reduce build context size
+node_modules
+dist
+*.log
+.env
+.env.local
+dev.db
+dev.db-journal
+.git
+.github
+README.md
+TEST_SUMMARY.md
+CONCURRENCY.md
+test-api.sh
+coverage
+*.md
+.vscode
+.idea
