@@ -66,8 +66,9 @@ export class AppointmentsService {
     }
 
     // Use Prisma transaction for concurrency-safe appointment creation
-    return await this.prisma.$transaction(async (tx) => {
-      // Check 1: Clinician overlap (doctor can't be in two places at once)
+    return await this.prisma.$transaction(
+      async (tx) => {
+        // Check 1: Clinician overlap (doctor can't be in two places at once)
       const clinicianOverlap = await tx.appointment.findFirst({
         where: {
           clinicianId,
@@ -150,7 +151,11 @@ export class AppointmentsService {
           patient: true,
         },
       });
-    });
+    },
+      {
+        timeout: 10000, // Allow transaction to run for 10s in CI
+      },
+    );
   }
 
   async findAll() {
