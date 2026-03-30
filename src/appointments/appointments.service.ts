@@ -11,11 +11,15 @@ import { validateDatesNotPast } from '../common/utils/date-validator.util';
 export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
-  private async resolvePatient(
-    patientId?: string,
-    patientEmail?: string,
-    patientName?: string,
-  ) {
+  private async resolvePatient({
+    patientId,
+    patientEmail,
+    patientName,
+  }: {
+    patientId?: string;
+    patientEmail?: string;
+    patientName?: string;
+  }) {
     // Priority 1: Use patientId if provided (ignore email)
     if (patientId) {
       const patient = await this.prisma.patient.findUnique({
@@ -100,11 +104,11 @@ export class AppointmentsService {
       );
     }
 
-    const patient = await this.resolvePatient(
+    const patient = await this.resolvePatient({
       patientId,
-      patientName,
       patientEmail,
-    );
+      patientName,
+    });
 
     // Use Prisma transaction for concurrency-safe appointment creation
     return await this.prisma.$transaction(
