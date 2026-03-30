@@ -11,6 +11,59 @@ import { validateDatesNotPast } from '../common/utils/date-validator.util';
 export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
+  private async resolvePatient(
+    patientId?: string,
+    patientEmail?: string,
+    patientName?: string,
+  ) {
+    // Priority 1: Use patientId if provided (ignore email)
+    if (patientId) {
+      const patient = await this.prisma.patient.findUnique({
+        where: { id: patientId },
+      });
+
+      if (!patient) {
+        throw new BadRequestException(
+          `Patient with id ${patientId} does not exist`,
+        );
+      }
+
+      return patient;
+    }
+
+    // Priority 2: Use patientEmail if provided
+    if (patientEmail) {
+      const existingPatient = await this.prisma.patient.findUnique({
+        where: { email: patientEmail },
+      });
+
+      // If patient exists with this email, use it
+      if (existingPatient) {
+        return existingPatient;
+      }
+
+      // Patient not found - create new if patientName provided
+      if (patientName) {
+        const patient = await this.prisma.patient.create({
+          data: {
+            name: patientName,
+            email: patientEmail,
+          },
+        });
+
+        return patient;
+      }
+
+      throw new BadRequestException(
+        `Patient with email ${patientEmail} not found. Please provide patientName to create a new patient.`,
+      );
+    }
+
+    throw new BadRequestException(
+      'Either patientId or patientEmail must be provided',
+    );
+  }
+
   async create(createAppointmentDto: CreateAppointmentDto) {
     const { start, end, clinicianId, patientId, patientName, patientEmail } =
       createAppointmentDto;
@@ -47,24 +100,11 @@ export class AppointmentsService {
       );
     }
 
-    // Check if patient exists, or auto-create if name/email provided
-    let patient = await this.prisma.patient.findUnique({
-      where: { id: patientId },
-    });
-
-    if (!patient && patientName && patientEmail) {
-      // Auto-create patient
-      patient = await this.prisma.patient.create({
-        data: {
-          name: patientName,
-          email: patientEmail,
-        },
-      });
-    } else if (!patient) {
-      throw new BadRequestException(
-        `Patient with id ${patientId} does not exist`,
-      );
-    }
+    const patient = await this.resolvePatient(
+      patientId,
+      patientName,
+      patientEmail,
+    );
 
     // Use Prisma transaction for concurrency-safe appointment creation
     return await this.prisma.$transaction(

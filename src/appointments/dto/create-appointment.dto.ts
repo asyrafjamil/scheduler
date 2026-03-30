@@ -29,6 +29,7 @@ export class CreateAppointmentDto {
   @IsUUID()
   clinicianId: string;
 
+  @IsOptional()
   @ApiProperty({
     description: 'UUID of the patient for this appointment',
     example: 'b2c3d4e5-f6g7-8901-bcde-f12345678901',
